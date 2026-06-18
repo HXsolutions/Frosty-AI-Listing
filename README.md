@@ -41,7 +41,7 @@ This system was built to match Frosty Connections' actual **Add Listing** form. 
 - **Upgrading Product/Listing Template** for specific listings — this is a membership/billing decision, not content generation
 
 ### Why Product & Listing Template Are Fixed
-These dropdowns (Professional, SPARK Partner, IP-Expansion, etc.) are **membership/subscription tiers**, not content categories. The AI generates content — it shouldn't decide what tier a business is on. Every generated listing defaults to the free tier (N-P Free / IP-Core) so it's live and functional. You can upgrade specific listings manually or in bulk through eDirectory whenever appropriate.
+These dropdowns (Professional, SPAerates content — it shouldn't decide what tier a business is on. Every generated listing defaults to the free RK Partner, IP-Expansion, etc.) are **membership/subscription tiers**, not content categories. The AI gentier (N-P Free / IP-Core) so it's live and functional. You can upgrade specific listings manually or in bulk through eDirectory whenever appropriate.
 
 ---
 

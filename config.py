@@ -5,6 +5,7 @@ from typing import Optional
 class Settings(BaseSettings):
     openai_api_key: str
     firecrawl_api_key: str
+    google_service_account_json: str
     google_service_account_file: str = "service_account.json"
     google_sheet_id: str
     confidence_threshold: float = 0.75

@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from models.listing import Listing, ListingStatus
 from config import settings
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +57,17 @@ DEFAULT_CATEGORIES = [
 
 
 def _get_client():
-    creds = Credentials.from_service_account_file(
-        settings.google_service_account_file, scopes=SCOPES
+    service_account_info = json.loads(
+        settings.google_service_account_json
     )
+
+    creds = Credentials.from_service_account_info(
+        service_account_info,
+        scopes=SCOPES
+    )
+
     return gspread.authorize(creds)
+
 
 
 def _ensure_tabs(spreadsheet):
