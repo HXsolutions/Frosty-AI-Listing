@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frosty Connections — Listing Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ice: #E8F4F8; --frost: #B8DDE8; --cold: #4A9BB5;
+  --deep: #1A3F52; --midnight: #0D1F2D; --white: #FAFCFD;
+  --success: #2ECC8A; --warning: #F5A623; --danger: #E85454;
+  --mono: 'Space Mono', monospace; --sans: 'DM Sans', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--midnight); color: var(--white);
+  font-family: var(--sans); min-height: 100vh;
+}
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(74,155,181,.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(74,155,181,.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+body::after {
+  content:''; position:fixed; top:-200px; right:-200px;
+  width:600px; height:600px; pointer-events:none; z-index:0;
+  background: radial-gradient(circle, rgba(74,155,181,.08) 0%, transparent 70%);
+}
+.wrap { max-width:920px; margin:0 auto; padding:40px 24px; position:relative; z-index:1; }
+
+.header {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:40px; padding-bottom:24px;
+  border-bottom:1px solid rgba(74,155,181,.2); flex-wrap:wrap; gap:12px;
+}
+.logo { display:flex; align-items:center; gap:14px; }
+.logo-icon {
+  width:42px; height:42px; border-radius:10px; display:flex;
+  align-items:center; justify-content:center; font-size:20px;
+  background:linear-gradient(135deg,var(--cold),var(--deep));
+  box-shadow:0 4px 20px rgba(74,155,181,.3);
+}
+.logo-name { font-family:var(--mono); font-size:13px; font-weight:700; color:var(--cold); letter-spacing:.08em; }
+.logo-sub  { font-family:var(--mono); font-size:11px; color:rgba(255,255,255,.35); letter-spacing:.05em; }
+.online {
+  display:flex; align-items:center; gap:7px; padding:6px 14px;
+  border-radius:20px; font-family:var(--mono); font-size:11px; color:var(--success);
+  background:rgba(46,204,138,.1); border:1px solid rgba(46,204,138,.3);
+}
+.dot { width:6px; height:6px; border-radius:50%; background:var(--success); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+.stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:28px; }
+.stat {
+  background:rgba(26,63,82,.3); border:1px solid rgba(74,155,181,.15);
+  border-radius:12px; padding:18px 20px; text-align:center;
+}
+.stat-num { font-family:var(--mono); font-size:28px; font-weight:700; }
+.stat-num.total    { color:var(--cold); }
+.stat-num.approved { color:var(--success); }
+.stat-num.review   { color:var(--warning); }
+.stat-label { font-family:var(--mono); font-size:10px; color:rgba(255,255,255,.35); letter-spacing:.1em; text-transform:uppercase; margin-top:4px; }
+
+.card {
+  background:rgba(26,63,82,.3); border:1px solid rgba(74,155,181,.15);
+  border-radius:16px; padding:32px; backdrop-filter:blur(10px); margin-bottom:20px;
+}
+.card-title {
+  font-family:var(--mono); font-size:11px; font-weight:700; color:var(--cold);
+  letter-spacing:.12em; text-transform:uppercase; margin-bottom:24px;
+  display:flex; align-items:center; gap:10px;
+}
+.card-title::after { content:''; flex:1; height:1px; background:rgba(74,155,181,.2); }
+
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:600px){ .form-grid{grid-template-columns:1fr} }
+.fg { display:flex; flex-direction:column; gap:7px; }
+label { font-family:var(--mono); font-size:10px; color:rgba(184,221,232,.6); letter-spacing:.08em; text-transform:uppercase; }
+input {
+  background:rgba(13,31,45,.8); border:1px solid rgba(74,155,181,.2);
+  border-radius:8px; padding:12px 15px; color:var(--white);
+  font-family:var(--sans); font-size:14px; outline:none; width:100%;
+  transition:border-color .2s, box-shadow .2s;
+}
+input:focus { border-color:var(--cold); box-shadow:0 0 0 3px rgba(74,155,181,.1); }
+input::placeholder { color:rgba(255,255,255,.2); }
+.hint { font-family:var(--mono); font-size:10px; color:rgba(255,255,255,.2); }
+
+.btn-gen {
+  width:100%; margin-top:22px; padding:15px;
+  background:linear-gradient(135deg,var(--cold),#2A7A9A);
+  border:none; border-radius:10px; color:#fff;
+  font-family:var(--mono); font-size:13px; font-weight:700;
+  letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+  transition:all .2s; display:flex; align-items:center; justify-content:center; gap:10px;
+}
+.btn-gen:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 8px 30px rgba(74,155,181,.4); }
+.btn-gen:disabled { opacity:.5; cursor:not-allowed; }
+.spinner {
+  display:none; width:16px; height:16px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.3); border-top-color:#fff;
+  animation:spin .7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+.notif {
+  display:none; align-items:flex-start; gap:14px;
+  padding:15px 20px; border-radius:10px; margin-bottom:18px;
+  animation:slideIn .3s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.notif.success { background:rgba(46,204,138,.1);  border:1px solid rgba(46,204,138,.3);  }
+.notif.warning { background:rgba(245,166,35,.1);  border:1px solid rgba(245,166,35,.3);  }
+.notif.error   { background:rgba(232,84,84,.1);   border:1px solid rgba(232,84,84,.3);   }
+.notif-icon { font-size:18px; }
+.notif-title { font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; }
+.notif.success .notif-title { color:var(--success); }
+.notif.warning .notif-title { color:var(--warning); }
+.notif.error   .notif-title { color:var(--danger);  }
+.notif-msg { font-size:13px; color:rgba(255,255,255,.7); line-height:1.5; white-space:pre-line; }
+
+.result-card {
+  display:none; background:rgba(13,31,45,.6);
+  border:1px solid rgba(74,155,181,.2); border-radius:12px; overflow:hidden;
+  margin-bottom:20px;
+}
+.result-head {
+  padding:16px 22px; background:rgba(74,155,181,.07);
+  border-bottom:1px solid rgba(74,155,181,.12);
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+}
+.result-name { font-size:16px; font-weight:600; }
+.score-wrap { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.score-bar { width:80px; height:5px; background:rgba(255,255,255,.1); border-radius:3px; overflow:hidden; }
+.score-fill { height:100%; border-radius:3px; transition:width 1s ease; }
+.score-val { font-family:var(--mono); font-size:12px; }
+.pill {
+  padding:3px 11px; border-radius:20px;
+  font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+}
+.pill.approved     { background:rgba(46,204,138,.15); border:1px solid rgba(46,204,138,.4); color:var(--success); }
+.pill.needs_review { background:rgba(245,166,35,.15); border:1px solid rgba(245,166,35,.4); color:var(--warning); }
+.result-body { padding:22px; }
+
+/* Image previews */
+.img-row { display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+.img-box {
+  flex:1; min-width:120px; background:rgba(13,31,45,.5);
+  border:1px solid rgba(74,155,181,.15); border-radius:8px; padding:10px; text-align:center;
+}
+.img-box img { max-width:100%; max-height:80px; border-radius:4px; object-fit:cover; }
+.img-box .img-label { font-family:var(--mono); font-size:9px; color:rgba(184,221,232,.4); letter-spacing:.08em; text-transform:uppercase; margin-top:6px; }
+.img-box .img-empty { color:rgba(255,255,255,.15); font-size:11px; padding:20px 0; font-family:var(--mono); }
+.gallery-strip { display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; }
+.gallery-strip img { height:60px; width:60px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+
+.fg2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+@media(max-width:600px){ .fg2{grid-template-columns:1fr} }
+.fi { display:flex; flex-direction:column; gap:4px; }
+.fi.full { grid-column:1/-1; }
+.fl { font-family:var(--mono); font-size:10px; color:rgba(184,221,232,.35); letter-spacing:.1em; text-transform:uppercase; }
+.fv { font-size:13px; color:rgba(255,255,255,.85); line-height:1.5; }
+.fv.empty { color:rgba(255,255,255,.2); font-style:italic; }
+.kw-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.kw { background:rgba(74,155,181,.1); border:1px solid rgba(74,155,181,.2); padding:3px 10px; border-radius:12px; font-size:11px; color:var(--frost); font-family:var(--mono); }
+.flags { margin-top:14px; }
+.flag { display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--warning); padding:3px 0; font-family:var(--mono); }
+.flag::before { content:'⚠'; font-size:11px; flex-shrink:0; margin-top:1px; }
+
+.note-box {
+  margin-top:18px; padding:12px 16px; border-radius:8px;
+  background:rgba(74,155,181,.06); border:1px solid rgba(74,155,181,.15);
+  font-size:12px; color:rgba(184,221,232,.7); line-height:1.6;
+}
+.note-box strong { color:var(--frost); }
+
+.btn-export {
+  display:inline-flex; align-items:center; gap:8px; margin-top:18px;
+  padding:10px 20px; border-radius:8px; cursor:pointer; text-decoration:none;
+  font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  background:rgba(46,204,138,.1); border:1px solid rgba(46,204,138,.3); color:var(--success);
+  transition:all .2s;
+}
+.btn-export:hover { background:rgba(46,204,138,.2); transform:translateY(-1px); }
+
+.hist-item {
+  display:flex; align-items:center; gap:12px; padding:11px 15px;
+  background:rgba(13,31,45,.4); border:1px solid rgba(74,155,181,.1);
+  border-radius:8px; margin-bottom:7px; transition:border-color .2s;
+}
+.hist-item:hover { border-color:rgba(74,155,181,.3); }
+.hist-name { flex:1; font-size:13px; }
+.hist-time { font-family:var(--mono); font-size:10px; color:rgba(255,255,255,.3); }
+.empty-msg { text-align:center; padding:28px; color:rgba(255,255,255,.2); font-family:var(--mono); font-size:12px; }
+
+.footer {
+  text-align:center; margin-top:44px; padding-top:22px;
+  border-top:1px solid rgba(74,155,181,.1);
+  font-family:var(--mono); font-size:10px; color:rgba(255,255,255,.18); letter-spacing:.08em;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="header">
+    <div class="logo">
+      <div class="logo-icon">❄</div>
+      <div>
+        <div class="logo-name">Frosty Connections</div>
+        <div class="logo-sub">AI Listing Generator · Admin Panel</div>
+      </div>
+    </div>
+    <div class="online"><div class="dot"></div>System Online</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-num total"   id="sTot">—</div><div class="stat-label">Total Generated</div></div>
+    <div class="stat"><div class="stat-num approved" id="sApp">—</div><div class="stat-label">Approved</div></div>
+    <div class="stat"><div class="stat-num review"   id="sRev">—</div><div class="stat-label">Needs Review</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Generate New Listing</div>
+    <div class="form-grid">
+      <div class="fg">
+        <label>Business Name</label>
+        <input id="bName" type="text" placeholder="e.g. Vilter Manufacturing">
+        <span class="hint">Optional if URL is provided</span>
+      </div>
+      <div class="fg">
+        <label>Website URL</label>
+        <input id="bUrl" type="url" placeholder="https://www.example.com">
+        <span class="hint">Optional if business name is provided</span>
+      </div>
+    </div>
+    <button class="btn-gen" id="genBtn" onclick="generate()">
+      <span id="btnTxt">⚡ Generate Listing</span>
+      <div class="spinner" id="spin"></div>
+    </button>
+  </div>
+
+  <div class="notif" id="notif">
+    <div class="notif-icon" id="nIcon"></div>
+    <div>
+      <div class="notif-title" id="nTitle"></div>
+      <div class="notif-msg"   id="nMsg"></div>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-head">
+      <div class="result-name" id="rName"></div>
+      <div class="score-wrap">
+        <div class="score-bar"><div class="score-fill" id="sFill"></div></div>
+        <span class="score-val" id="sVal"></span>
+        <span class="pill" id="rPill"></span>
+      </div>
+    </div>
+    <div class="result-body">
+
+      <!-- Images -->
+      <div class="img-row">
+        <div class="img-box">
+          <div id="logoBox"><div class="img-empty">No logo found</div></div>
+          <div class="img-label">Logo</div>
+        </div>
+        <div class="img-box">
+          <div id="coverBox"><div class="img-empty">No cover image</div></div>
+          <div class="img-label">Cover Image</div>
+        </div>
+        <div class="img-box" style="flex:2">
+          <div id="galleryBox"><div class="img-empty">No gallery images</div></div>
+          <div class="img-label">Photo Gallery</div>
+        </div>
+      </div>
+
+      <div class="fg2">
+        <div class="fi"><div class="fl">Category 1</div><div class="fv" id="rC1"></div></div>
+        <div class="fi"><div class="fl">Category 2</div><div class="fv" id="rC2"></div></div>
+        <div class="fi"><div class="fl">Category 3</div><div class="fv" id="rC3"></div></div>
+        <div class="fi"><div class="fl">Category 4</div><div class="fv" id="rC4"></div></div>
+        <div class="fi"><div class="fl">Category 5</div><div class="fv" id="rC5"></div></div>
+        <div class="fi"><div class="fl">Phone</div><div class="fv" id="rPh"></div></div>
+        <div class="fi"><div class="fl">Additional Phone</div><div class="fv" id="rPh2"></div></div>
+        <div class="fi"><div class="fl">Email</div><div class="fv" id="rEmail"></div></div>
+        <div class="fi"><div class="fl">Location</div><div class="fv" id="rLoc"></div></div>
+        <div class="fi"><div class="fl">Map Reference</div><div class="fv" id="rRef"></div></div>
+        <div class="fi full"><div class="fl">Summary Description</div><div class="fv" id="rSD"></div></div>
+        <div class="fi full"><div class="fl">SEO Title</div><div class="fv" id="rST"></div></div>
+        <div class="fi full"><div class="fl">Slug URL</div><div class="fv" id="rSlug"></div></div>
+        <div class="fi full"><div class="fl">SEO Description</div><div class="fv" id="rSEO"></div></div>
+        <div class="fi full"><div class="fl">SEO Keywords (max 15)</div><div id="rSeoKW"></div></div>
+        <div class="fi full"><div class="fl">Search Keywords (max 20)</div><div id="rSearchKW"></div></div>
+      </div>
+
+      <div id="flagsWrap" style="display:none" class="flags">
+        <div class="fl" style="margin-bottom:8px">Review Flags</div>
+        <div id="flagsList"></div>
+      </div>
+
+      <!-- Confidence Notes -->
+      <div id="confNotesWrap" style="display:none;margin-top:18px;">
+        <div class="fl" style="margin-bottom:8px">Confidence Notes</div>
+        <div style="background:rgba(13,31,45,.5);border:1px solid rgba(74,155,181,.15);border-radius:8px;padding:14px 16px;font-size:12px;color:rgba(184,221,232,.8);line-height:1.8;white-space:pre-line;font-family:var(--mono);" id="confNotes"></div>
+      </div>
+
+      <div class="note-box">
+        <strong>Product:</strong> N-P Free &nbsp;·&nbsp; <strong>Listing Template:</strong> IP-Core &nbsp;·&nbsp; <strong>Status:</strong> Active<br>
+        Account, Total Allowed Leads, Claim settings, and Listing Badges are managed manually by you in eDirectory.
+      </div>
+
+      <a class="btn-export" href="#" onclick="exportCSV(event)">↓ Export CSV for eDirectory</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Recent Listings</div>
+    <div id="histList"><div class="empty-msg">No listings generated yet</div></div>
+  </div>
+
+  <div class="footer">Frosty Connections AI Listing System · Haxxcel Solutions · v2.0.0</div>
+</div>
+
+<script>
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : window.location.origin;
+
+// API key — set this if ADMIN_API_KEY is configured on the server
+// In production, set this to your ADMIN_API_KEY value
+const API_KEY = localStorage.getItem('fc_api_key') || '';
+
+function apiHeaders() {
+  const h = { 'Content-Type': 'application/json' };
+  if (API_KEY) h['X-API-Key'] = API_KEY;
+  return h;
+}
+
+let hist = JSON.parse(localStorage.getItem('fc_hist') || '[]');
+renderHist();
+loadStats();
+
+async function loadStats() {
+  try {
+    const r = await fetch(`${API}/export/stats`, { headers: apiHeaders() });
+    const d = await r.json();
+    document.getElementById('sTot').textContent = d.total ?? '—';
+    document.getElementById('sApp').textContent = d.approved ?? '—';
+    document.getElementById('sRev').textContent = d.needs_review ?? '—';
+  } catch {}
+}
+
+async function generate() {
+  const name = document.getElementById('bName').value.trim();
+  const url  = document.getElementById('bUrl').value.trim();
+
+  if (!name && !url) {
+    showNotif('error', 'Missing Input', 'Enter a business name or website URL.');
+    return;
+  }
+
+  setLoading(true);
+  hideResult();
+
+  try {
+    const res = await fetch(`${API}/listings/generate`, {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({ business_name: name || null, url: url || null }),
+    });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      showNotif('error', 'Generation Failed', data.error || 'Something went wrong.');
+      return;
+    }
+
+    renderResult(data.listing, data.message);
+    addHist({ title: data.listing.listing_title, status: data.listing.review_status, time: new Date().toLocaleTimeString() });
+    loadStats();
+
+  } catch (e) {
+    showNotif('error', 'Connection Error', `Cannot reach the API. Is the backend running?\n${e.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderResult(l, msg) {
+  const approved = l.review_status === 'approved';
+  showNotif(approved ? 'success' : 'warning', approved ? 'Listing Approved ✓' : 'Saved to Review Queue', msg);
+
+  document.getElementById('rName').textContent = l.listing_title;
+
+  const score = l.confidence_score;
+  const color = score >= .75 ? '#2ECC8A' : score >= .5 ? '#F5A623' : '#E85454';
+  const fill = document.getElementById('sFill');
+  fill.style.width = `${score * 100}%`;
+  fill.style.background = color;
+  document.getElementById('sVal').textContent = `${Math.round(score * 100)}%`;
+  document.getElementById('sVal').style.color = color;
+
+  const pill = document.getElementById('rPill');
+  pill.textContent = approved ? 'Approved' : 'Needs Review';
+  pill.className = `pill ${l.review_status}`;
+
+  // Images
+  setImg('logoBox', l.logo_image_url, 'No logo found');
+  setImg('coverBox', l.cover_image_url, 'No cover image');
+  setGallery(l.photo_gallery_urls || []);
+
+  setF('rC1', l.category_1);
+  setF('rC2', l.category_2);
+  setF('rC3', l.category_3);
+  setF('rC4', l.category_4);
+  setF('rC5', l.category_5);
+  setF('rPh', l.phone);
+  setF('rPh2', l.additional_phone ? `${l.additional_phone}${l.additional_phone_label ? ' (' + l.additional_phone_label + ')' : ''}` : '');
+  setF('rEmail', l.email);
+  setF('rRef', l.map_reference || l.reference);
+  setF('rSD', l.summary_description);
+  setF('rST', l.seo_title);
+  setF('rSlug', l.slug_url);
+  setF('rSEO', l.seo_description);
+  setF('rLoc', [l.address, l.zip_code, l.country].filter(Boolean).join(', '));
+
+  setKwList('rSeoKW', l.seo_keywords);
+  setKwList('rSearchKW', l.search_keywords);
+
+  const fw = document.getElementById('flagsWrap');
+  if (l.flags && l.flags.length) {
+    fw.style.display = 'block';
+    document.getElementById('flagsList').innerHTML = l.flags.map(f => `<div class="flag">${f}</div>`).join('');
+  } else {
+    fw.style.display = 'none';
+  }
+
+  // Confidence Notes
+  const cnWrap = document.getElementById('confNotesWrap');
+  const cnEl   = document.getElementById('confNotes');
+  if (l.confidence_notes) {
+    cnWrap.style.display = 'block';
+    cnEl.textContent = l.confidence_notes;
+  } else {
+    cnWrap.style.display = 'none';
+  }
+
+  document.getElementById('resultCard').style.display = 'block';
+  setTimeout(() => document.getElementById('resultCard').scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+}
+
+function setImg(boxId, url, emptyText) {
+  const box = document.getElementById(boxId);
+  if (url) {
+    box.innerHTML = `<img src="${url}" alt="">`;
+  } else {
+    box.innerHTML = `<div class="img-empty">${emptyText}</div>`;
+  }
+}
+
+function setGallery(urls) {
+  const box = document.getElementById('galleryBox');
+  if (!urls.length) {
+    box.innerHTML = '<div class="img-empty">No gallery images</div>';
+    return;
+  }
+  const strip = document.createElement('div');
+  strip.className = 'gallery-strip';
+  urls.forEach(u => {
+    const img = document.createElement('img');
+    img.src = u;
+    strip.appendChild(img);
+  });
+  box.innerHTML = '';
+  box.appendChild(strip);
+}
+
+function setF(id, val) {
+  const el = document.getElementById(id);
+  el.textContent = val || 'Not available';
+  el.className = val ? 'fv' : 'fv empty';
+}
+
+function setKwList(id, value) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  if (!value) return;
+  const div = document.createElement('div'); div.className = 'kw-list';
+  value.split('||').map(k => k.trim()).filter(Boolean).forEach(k => {
+    const s = document.createElement('span'); s.className = 'kw'; s.textContent = k; div.appendChild(s);
+  });
+  el.appendChild(div);
+}
+
+async function exportCSV(e) {
+  e.preventDefault();
+  window.open(`${API}/export/csv`, '_blank');
+}
+
+function showNotif(type, title, msg) {
+  const icons = { success:'✓', warning:'!', error:'✕' };
+  const n = document.getElementById('notif');
+  n.className = `notif ${type}`; n.style.display = 'flex';
+  document.getElementById('nIcon').textContent  = icons[type];
+  document.getElementById('nTitle').textContent = title;
+  document.getElementById('nMsg').textContent   = msg;
+}
+
+function hideResult() {
+  document.getElementById('notif').style.display = 'none';
+  document.getElementById('resultCard').style.display = 'none';
+}
+
+function setLoading(on) {
+  document.getElementById('genBtn').disabled = on;
+  document.getElementById('btnTxt').style.display = on ? 'none' : 'inline';
+  document.getElementById('spin').style.display   = on ? 'block' : 'none';
+}
+
+function addHist(item) {
+  hist.unshift(item);
+  if (hist.length > 30) hist = hist.slice(0, 30);
+  localStorage.setItem('fc_hist', JSON.stringify(hist));
+  renderHist();
+}
+
+function renderHist() {
+  const el = document.getElementById('histList');
+  if (!hist.length) { el.innerHTML = '<div class="empty-msg">No listings generated yet</div>'; return; }
+  el.innerHTML = hist.map(h => `
+    <div class="hist-item">
+      <span class="hist-name">${h.title || 'Untitled'}</span>
+      <span class="pill ${h.status}" style="font-size:9px">${h.status === 'approved' ? 'Approved' : 'Review'}</span>
+      <span class="hist-time">${h.time}</span>
+    </div>`).join('');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') generate(); });
+</script>
+</body>
+</html>
